@@ -1,6 +1,6 @@
-import ObfuscateForm from '@/components/obfuscate-form';
 import { Bot } from 'lucide-react';
 import { Suspense } from 'react';
+import ObfuscateFormLoader from '@/components/obfuscate-form-loader';
 
 export default function Home() {
   return (
@@ -14,7 +14,7 @@ export default function Home() {
             <p className="text-lg text-muted-foreground mt-2 font-body">"The truth exists, but not here."</p>
         </div>
         <Suspense fallback={<div className="text-center text-lg">Loading form...</div>}>
-            <ObfuscateForm />
+            <ObfuscateFormLoader />
         </Suspense>
       </div>
     </main>
