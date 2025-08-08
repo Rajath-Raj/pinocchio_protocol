@@ -26,7 +26,7 @@ function AnimatedText({ text, onProgress }: { text: string; onProgress: (progres
         onProgress(1);
         setTimeout(() => onProgress(0), 500); // Retract nose after a delay
       }
-    }, 25);
+    }, 35); // Slowed down from 25ms to 35ms
 
     return () => clearInterval(intervalId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,7 +114,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
   
   useEffect(() => {
     // This effect handles the automatic playback
-    const animationDuration = confused.length * 25;
+    const animationDuration = confused.length * 35; // Adjusted to match new speed
     const timer = setTimeout(() => {
       handlePlay();
     }, animationDuration + 250); // Add a small buffer after animation
