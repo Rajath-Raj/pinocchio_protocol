@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, Copy, Save, LoaderCircle, Bot } from 'lucide-react';
+import { RefreshCw, Copy, Save, LoaderCircle, Bot, Play, Pause } from 'lucide-react';
 
 import { getRobotVoice } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import Pinocchio from './pinocchio';
 
-function AnimatedText({ text }: { text: string; }) {
+function AnimatedText({ text, onAnimationComplete }: { text: string; onAnimationComplete: () => void; }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -22,11 +22,12 @@ function AnimatedText({ text }: { text: string; }) {
         i++;
       } else {
         clearInterval(intervalId);
+        onAnimationComplete();
       }
     }, 35);
 
     return () => clearInterval(intervalId);
-  }, [text]);
+  }, [text, onAnimationComplete]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
 }
@@ -36,11 +37,12 @@ function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: bool
     <Button variant="outline" onClick={onClick} disabled={isGeneratingAudio}>
       {isGeneratingAudio ? (
         <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
+      ) : isPlaying ? (
+        <Pause className="mr-2 h-5 w-5" />
       ) : (
-        <Bot className="mr-2 h-5 w-5" />
-
+        <Play className="mr-2 h-5 w-5" />
       )}
-      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Playing...' : 'Replay'}
+      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Pause' : 'Replay'}
     </Button>
   );
 }
@@ -59,89 +61,80 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
   const [noseProgress, setNoseProgress] = useState(0);
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
   
   const handlePlay = async () => {
-    if (isPlaying && audioRef.current) {
+    if (audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsPlaying(false);
-        setNoseProgress(0); // Retract nose on pause
         return;
     }
 
-    if (audioDataUri) {
-        if (!audioRef.current) {
-            audioRef.current = new Audio(audioDataUri);
-            addAudioEventListeners(audioRef.current);
-        }
+    if (audioRef.current && audioRef.current.paused && audioDataUri) {
         audioRef.current.play();
-        setIsPlaying(true);
         return;
     }
 
     setIsGeneratingAudio(true);
-    const { audioDataUri: newAudioDataUri, error } = await getRobotVoice(confused);
-    setIsGeneratingAudio(false);
+    try {
+        const { audioDataUri: newAudioDataUri, error } = await getRobotVoice(confused);
+        if (error || !newAudioDataUri) {
+          throw new Error(error || 'Could not generate the robot voice.');
+        }
+        setAudioDataUri(newAudioDataUri);
 
-    if (error || !newAudioDataUri) {
-      toast({
-        variant: 'destructive',
-        title: 'Audio Generation Failed',
-        description: error || 'Could not generate the robot voice.',
-      });
-      return;
+        if (audioRef.current) {
+            audioRef.current.removeEventListener('timeupdate', onTimeUpdate);
+            audioRef.current.removeEventListener('ended', onEnded);
+            audioRef.current.removeEventListener('play', onPlay);
+            audioRef.current.removeEventListener('pause', onPause);
+        }
+
+        const newAudio = new Audio(newAudioDataUri);
+        audioRef.current = newAudio;
+        addAudioEventListeners(newAudio);
+        newAudio.play();
+    } catch (err) {
+        toast({
+            variant: 'destructive',
+            title: 'Audio Generation Failed',
+            description: err instanceof Error ? err.message : 'An unknown error occurred.',
+        });
+    } finally {
+        setIsGeneratingAudio(false);
     }
-    
-    setAudioDataUri(newAudioDataUri);
-    const newAudio = new Audio(newAudioDataUri);
-    audioRef.current = newAudio;
-    addAudioEventListeners(newAudio);
-    newAudio.play();
-    setIsPlaying(true);
+  };
+
+  const onTimeUpdate = () => {
+    if (audioRef.current) {
+        setNoseProgress(audioRef.current.currentTime / audioRef.current.duration);
+    }
+  };
+  const onPlay = () => setIsPlaying(true);
+  const onPause = () => {
+      setIsPlaying(false);
+      // Retract nose only when audio finishes completely
+      if (audioRef.current && audioRef.current.currentTime === audioRef.current.duration) {
+          setNoseProgress(0);
+      }
+  };
+  const onEnded = () => {
+      setIsPlaying(false);
+      setNoseProgress(0);
   };
 
   const addAudioEventListeners = (audio: HTMLAudioElement) => {
-    const onTimeUpdate = () => {
-        if (audio.duration > 0) {
-            setNoseProgress(audio.currentTime / audio.duration);
-        }
-    };
-    const onEnded = () => {
-        setIsPlaying(false);
-        setNoseProgress(0); // Retract nose when done
-    };
-    const onPause = () => {
-      if (audio.currentTime < audio.duration) {
-        setIsPlaying(false);
-        // Do not retract nose on pause, only on end or manual stop.
-      }
-    };
-
-    // Clear old listeners before adding new ones
-    audio.removeEventListener('timeupdate', onTimeUpdate);
-    audio.removeEventListener('ended', onEnded);
-    audio.removeEventListener('pause', onPause);
-
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
   };
   
   useEffect(() => {
-    const animationDuration = confused.length * 35; 
-    const timer = setTimeout(() => {
+    if (isAnimationComplete) {
       handlePlay();
-    }, animationDuration + 250);
-
-    return () => {
-        clearTimeout(timer);
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
-    };
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confused]); 
+  }, [isAnimationComplete]); 
 
   // Cleanup effect
   useEffect(() => {
@@ -149,8 +142,10 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
     return () => {
         if (audio) {
             audio.pause();
-            // The event listeners are attached to the audio object itself, so they don't need manual cleanup here
-            // unless we were recreating it constantly, which we are not.
+            audio.removeEventListener('timeupdate', onTimeUpdate);
+            audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('play', onPlay);
+            audio.removeEventListener('pause', onPause);
         }
     };
   }, []);
@@ -186,7 +181,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
           </div>
         </CardHeader>
         <CardContent>
-          <AnimatedText text={confused} />
+          <AnimatedText text={confused} onAnimationComplete={() => setIsAnimationComplete(true)} />
         </CardContent>
         <CardFooter className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Button variant="outline" onClick={handleConfuseAgain}>
