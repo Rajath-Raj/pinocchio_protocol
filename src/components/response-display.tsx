@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw, Copy, Save, LoaderCircle, Bot } from 'lucide-react';
 
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import Pinocchio from './pinocchio';
 
-function AnimatedText({ text, onProgress }: { text: string; onProgress: (progress: number) => void; }) {
+function AnimatedText({ text }: { text: string; }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -19,38 +19,19 @@ function AnimatedText({ text, onProgress }: { text: string; onProgress: (progres
     const intervalId = setInterval(() => {
       if (i < text.length) {
         setDisplayedText(text.substring(0, i + 1));
-        onProgress((i + 1) / text.length);
         i++;
       } else {
         clearInterval(intervalId);
-        onProgress(1);
-        setTimeout(() => onProgress(0), 500); // Retract nose after a delay
       }
-    }, 35); // Slowed down from 25ms to 35ms
+    }, 35);
 
     return () => clearInterval(intervalId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
 }
 
 function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: boolean; isGeneratingAudio: boolean; onClick: () => void; }) {
-  const [isWinking, setIsWinking] = useState(false);
-
-  useEffect(() => {
-    let winkTimeout: NodeJS.Timeout;
-    if (isPlaying) {
-      const wink = () => {
-        setIsWinking(true);
-        setTimeout(() => setIsWinking(false), 200);
-        winkTimeout = setTimeout(wink, Math.random() * 4000 + 2000);
-      };
-      wink();
-    }
-    return () => clearTimeout(winkTimeout);
-  }, [isPlaying]);
-
   return (
     <Button variant="outline" onClick={onClick} disabled={isGeneratingAudio}>
       {isGeneratingAudio ? (
@@ -59,7 +40,7 @@ function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: bool
         <Bot className="mr-2 h-5 w-5" />
 
       )}
-      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Replaying...' : 'Replay'}
+      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Playing...' : 'Replay'}
     </Button>
   );
 }
@@ -73,21 +54,27 @@ interface ResponseDisplayProps {
 export default function ResponseDisplay({ original, confused }: ResponseDisplayProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
   const [noseProgress, setNoseProgress] = useState(0);
   
   const handlePlay = async () => {
-    if (isPlaying && audio) {
-        audio.pause();
+    if (isPlaying && audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         setIsPlaying(false);
+        setNoseProgress(0); // Retract nose on pause
         return;
     }
 
-    if (audioDataUri && audio) {
-        audio.play();
+    if (audioDataUri) {
+        if (!audioRef.current) {
+            audioRef.current = new Audio(audioDataUri);
+            addAudioEventListeners(audioRef.current);
+        }
+        audioRef.current.play();
         setIsPlaying(true);
         return;
     }
@@ -106,40 +93,67 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
     }
     
     setAudioDataUri(newAudioDataUri);
-    const currentAudio = new Audio(newAudioDataUri);
-    setAudio(currentAudio);
-    currentAudio.play();
+    const newAudio = new Audio(newAudioDataUri);
+    audioRef.current = newAudio;
+    addAudioEventListeners(newAudio);
+    newAudio.play();
     setIsPlaying(true);
+  };
+
+  const addAudioEventListeners = (audio: HTMLAudioElement) => {
+    const onTimeUpdate = () => {
+        if (audio.duration > 0) {
+            setNoseProgress(audio.currentTime / audio.duration);
+        }
+    };
+    const onEnded = () => {
+        setIsPlaying(false);
+        setNoseProgress(0); // Retract nose when done
+    };
+    const onPause = () => {
+      if (audio.currentTime < audio.duration) {
+        setIsPlaying(false);
+        // Do not retract nose on pause, only on end or manual stop.
+      }
+    };
+
+    // Clear old listeners before adding new ones
+    audio.removeEventListener('timeupdate', onTimeUpdate);
+    audio.removeEventListener('ended', onEnded);
+    audio.removeEventListener('pause', onPause);
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('pause', onPause);
   };
   
   useEffect(() => {
-    // This effect handles the automatic playback
-    const animationDuration = confused.length * 35; // Adjusted to match new speed
+    const animationDuration = confused.length * 35; 
     const timer = setTimeout(() => {
       handlePlay();
-    }, animationDuration + 250); // Add a small buffer after animation
+    }, animationDuration + 250);
 
     return () => {
         clearTimeout(timer);
-        if (audio) {
-            audio.pause();
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
         }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confused]); // Rerun when the confused text changes
+  }, [confused]); 
 
-
+  // Cleanup effect
   useEffect(() => {
-    if (audio) {
-        audio.onended = () => setIsPlaying(false);
-    }
+    const audio = audioRef.current;
     return () => {
         if (audio) {
             audio.pause();
-            audio.onended = null;
+            // The event listeners are attached to the audio object itself, so they don't need manual cleanup here
+            // unless we were recreating it constantly, which we are not.
         }
     };
-  }, [audio]);
+  }, []);
   
   const handleCopy = () => {
     navigator.clipboard.writeText(confused);
@@ -172,7 +186,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
           </div>
         </CardHeader>
         <CardContent>
-          <AnimatedText text={confused} onProgress={setNoseProgress} />
+          <AnimatedText text={confused} />
         </CardContent>
         <CardFooter className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Button variant="outline" onClick={handleConfuseAgain}>
