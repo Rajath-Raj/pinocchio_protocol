@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, Copy, Save, LoaderCircle, Eye } from 'lucide-react';
+import { RefreshCw, Copy, Save, LoaderCircle, Bot } from 'lucide-react';
 
 import { getRobotVoice } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -51,11 +51,10 @@ function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: bool
       {isGeneratingAudio ? (
         <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
       ) : (
-        <div className="relative mr-2 h-5 w-5">
-          <Eye className={`transition-transform duration-200 ${isWinking ? 'scale-y-0' : 'scale-y-100'}`} />
-        </div>
+        <Bot className="mr-2 h-5 w-5" />
+
       )}
-      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Listening...' : 'Listen'}
+      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Replaying...' : 'Replay'}
     </Button>
   );
 }

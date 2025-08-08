@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -23,7 +22,7 @@ import { cn } from '@/lib/utils';
 const formSchema = z.object({
   sentence: z.string().min(10, { message: 'Please enter a sentence with at least 10 characters.' }),
   language: z.string(),
-  confusionLevel: z.number().min(0).max(3),
+  confusionLevel: z.number().min(0).max(2),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -200,7 +199,9 @@ export default function ObfuscateForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-            <CardTitle className="font-headline text-3xl transition-all duration-500">{thugMode ? 'Final Boss' : 'Start Confusing'}</CardTitle>
+            <CardTitle className={cn("font-headline text-3xl transition-all duration-500", thugMode && "final-boss-title")}>
+              {thugMode ? 'Final Boss' : 'Start Confusing'}
+            </CardTitle>
             <CardDescription>Enter a sentence and watch it become beautifully ambiguous.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -210,7 +211,10 @@ export default function ObfuscateForm() {
                     variant={thugMode ? 'destructive' : 'outline'}
                     size="sm"
                     onClick={() => setThugMode(!thugMode)}
-                    className="group"
+                    className={cn(
+                        "group transition-all duration-300",
+                        thugMode && "bg-primary text-primary-foreground border-black border-2 shadow-[0_0_10px_hsl(var(--accent))]"
+                    )}
                 >
                     <Skull className={cn("mr-2 h-4 w-4 transition-transform", thugMode && "animate-pulse group-hover:scale-125")} />
                     Thug Bot

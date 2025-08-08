@@ -11,7 +11,7 @@ export default function Home() {
                 <Bot className="w-12 h-12 text-primary" />
             </div>
             <h1 className="text-5xl md:text-6xl font-headline font-bold text-foreground drop-shadow-sm">Obfuscate</h1>
-            <p className="text-xl text-muted-foreground mt-2 font-body">"The truth exists, but not here."</p>
+            <p className="text-xl text-muted-foreground mt-2 font-body">Technically true, maximally confusing.</p>
         </div>
         <Suspense fallback={<div className="text-center text-lg">Loading form...</div>}>
             <ObfuscateFormLoader />

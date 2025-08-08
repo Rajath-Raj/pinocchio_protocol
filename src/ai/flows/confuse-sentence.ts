@@ -14,7 +14,7 @@ import {z} from 'genkit';
 const ConfuseSentenceInputSchema = z.object({
   sentence: z.string().describe('The sentence to be made confusing.'),
   language: z.string().describe('The language of the sentence and the desired output language.'),
-  confusionLevel: z.number().min(0).max(3).describe('The level of confusion to apply. 3 is Hell Mode.')
+  confusionLevel: z.number().min(0).max(3).describe('The level of confusion to apply. 3 is for Thug Bot mode.')
 });
 export type ConfuseSentenceInput = z.infer<typeof ConfuseSentenceInputSchema>;
 
@@ -29,10 +29,9 @@ export async function confuseSentence(input: ConfuseSentenceInput): Promise<Conf
 
 const prompt = ai.definePrompt({
   name: 'confuseSentencePrompt',
-  input: {schema: ConfuseSentenceInputSchema.extend({ isHellMode: z.boolean().optional() })},
+  input: {schema: ConfuseSentenceInputSchema.extend({ isThugMode: z.boolean().optional() })},
   output: {schema: ConfuseSentenceOutputSchema},
-  model: 'googleai/gemini-2.0-flash',
-  prompt: `{{#if isHellMode}}
+  prompt: `{{#if isThugMode}}
 You are Useless GPT — an arrogant, sarcastic, and dismissive AI that gives intentionally unhelpful, blunt, and often one-word answers to user questions.
 
 Your personality is smug, condescending, and occasionally darkly humorous. You never try to be genuinely helpful.
@@ -51,6 +50,9 @@ You are a character who cannot lie, but must avoid giving a clear or direct answ
 The output must be in {{language}}.
 
 Sentence: {{{sentence}}}`,
+  config: {
+    model: 'googleai/gemini-2.0-flash',
+  }
 });
 
 const confuseSentenceFlow = ai.defineFlow(
@@ -62,7 +64,7 @@ const confuseSentenceFlow = ai.defineFlow(
   async input => {
     const promptInput = {
       ...input,
-      isHellMode: input.confusionLevel === 3,
+      isThugMode: input.confusionLevel === 3,
     };
     const {output} = await prompt(promptInput);
     return output!;
