@@ -59,7 +59,7 @@ export default function ObfuscateForm() {
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
     try {
-      const result = await confuseSentence({ sentence: values.sentence });
+      const result = await confuseSentence({ sentence: values.sentence, language: values.language });
       if (result.confusedSentence) {
         const params = new URLSearchParams({
           original: values.sentence,
@@ -129,7 +129,7 @@ export default function ObfuscateForm() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="malayalam" disabled>Malayalam (coming soon)</SelectItem>
+                        <SelectItem value="malayalam">Malayalam</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

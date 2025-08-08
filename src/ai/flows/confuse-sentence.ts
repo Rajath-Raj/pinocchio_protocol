@@ -13,6 +13,7 @@ import {z} from 'genkit';
 
 const ConfuseSentenceInputSchema = z.object({
   sentence: z.string().describe('The sentence to be made confusing.'),
+  language: z.string().describe('The language of the sentence and the desired output language.'),
 });
 export type ConfuseSentenceInput = z.infer<typeof ConfuseSentenceInputSchema>;
 
@@ -30,6 +31,8 @@ const prompt = ai.definePrompt({
   input: {schema: ConfuseSentenceInputSchema},
   output: {schema: ConfuseSentenceOutputSchema},
   prompt: `You are a character who cannot lie, but must avoid giving a clear or direct answer. Rewrite the given sentence in a way that is technically true but highly confusing, using double negatives, vague qualifiers, and circular logic. The result should sound like an answer but reveal as little useful information as possible while remaining truthful.
+
+The output must be in {{language}}.
 
 Sentence: {{{sentence}}}`,
 });
