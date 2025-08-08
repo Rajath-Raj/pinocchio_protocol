@@ -117,7 +117,9 @@ export default function ObfuscateForm() {
         }
       };
        // Stop all media tracks to turn off the recording indicator
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
     }
   };
 
