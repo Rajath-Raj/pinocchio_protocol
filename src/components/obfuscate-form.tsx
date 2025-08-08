@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -88,9 +89,16 @@ export default function ObfuscateForm() {
   const handleStopRecording = async () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.removeEventListener('stop', handleStopRecording);
+      
+      // Stop all media tracks to turn off the recording indicator
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+      
       if (mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
+
       setIsRecording(false);
       setIsTranscribing(true);
 
@@ -102,7 +110,7 @@ export default function ObfuscateForm() {
         try {
           const { text, error } = await getTranscription({ audioDataUri: base64Audio });
           if (error || !text) {
-            throw new Error(error || 'Transcription failed to return text.');
+             throw new Error(error || 'Transcription failed to return text.');
           }
           form.setValue('sentence', text);
         } catch (transcriptionError) {
@@ -116,10 +124,6 @@ export default function ObfuscateForm() {
           setIsTranscribing(false);
         }
       };
-       // Stop all media tracks to turn off the recording indicator
-      if (mediaRecorderRef.current.stream) {
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      }
     }
   };
 
