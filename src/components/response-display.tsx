@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw, Copy, Save, LoaderCircle, Bot } from 'lucide-react';
 
@@ -8,8 +8,9 @@ import { getRobotVoice } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import Pinocchio from './pinocchio';
 
-function AnimatedText({ text }: { text: string }) {
+function AnimatedText({ text, onProgress }: { text: string; onProgress: (progress: number) => void; }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -18,13 +19,17 @@ function AnimatedText({ text }: { text: string }) {
     const intervalId = setInterval(() => {
       if (i < text.length) {
         setDisplayedText(text.substring(0, i + 1));
+        onProgress((i + 1) / text.length);
         i++;
       } else {
         clearInterval(intervalId);
+        onProgress(1);
+        setTimeout(() => onProgress(0), 500); // Retract nose after a delay
       }
     }, 25);
 
     return () => clearInterval(intervalId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
@@ -72,6 +77,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
+  const [noseProgress, setNoseProgress] = useState(0);
   
   const handlePlay = async () => {
     if (isPlaying && audio) {
@@ -155,13 +161,18 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
     <div className="w-full max-w-3xl mx-auto">
       <Card className="shadow-lg border-border/50 rounded-2xl">
         <CardHeader>
-          <CardTitle className="font-headline text-3xl">Your Confused Response</CardTitle>
-          <CardDescription>
-            Original: <span className="italic">"{original}"</span>
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="font-headline text-3xl">Your Confused Response</CardTitle>
+              <CardDescription>
+                Original: <span className="italic">"{original}"</span>
+              </CardDescription>
+            </div>
+            <Pinocchio noseProgress={noseProgress} />
+          </div>
         </CardHeader>
         <CardContent>
-          <AnimatedText text={confused} />
+          <AnimatedText text={confused} onProgress={setNoseProgress} />
         </CardContent>
         <CardFooter className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Button variant="outline" onClick={handleConfuseAgain}>
