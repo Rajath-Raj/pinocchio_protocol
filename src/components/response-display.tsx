@@ -2,34 +2,59 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, Play, Pause, Copy, Save, LoaderCircle } from 'lucide-react';
+import { RefreshCw, Copy, Save, LoaderCircle, Eye } from 'lucide-react';
 
 import { getRobotVoice } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-interface AnimatedTextProps {
-  text: string;
-}
-
-function AnimatedText({ text }: AnimatedTextProps) {
+function AnimatedText({ text }: { text: string }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
     setDisplayedText('');
-    const words = text.split(' ');
-    let currentText = '';
-    words.forEach((word, index) => {
+    const chars = text.split('');
+    chars.forEach((char, index) => {
       setTimeout(() => {
-        currentText += (index > 0 ? ' ' : '') + word;
-        setDisplayedText(currentText);
-      }, index * 100);
+        setDisplayedText((prev) => prev + char);
+      }, index * 25);
     });
   }, [text]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">_</span></p>;
 }
+
+function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: boolean; isGeneratingAudio: boolean; onClick: () => void; }) {
+  const [isWinking, setIsWinking] = useState(false);
+
+  useEffect(() => {
+    let winkTimeout: NodeJS.Timeout;
+    if (isPlaying) {
+      const wink = () => {
+        setIsWinking(true);
+        setTimeout(() => setIsWinking(false), 200);
+        winkTimeout = setTimeout(wink, Math.random() * 4000 + 2000);
+      };
+      wink();
+    }
+    return () => clearTimeout(winkTimeout);
+  }, [isPlaying]);
+
+  return (
+    <Button variant="outline" onClick={onClick} disabled={isGeneratingAudio}>
+      {isGeneratingAudio ? (
+        <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
+      ) : (
+        <div className="relative mr-2 h-5 w-5">
+          <Eye className={`transition-transform duration-200 ${isWinking ? 'scale-y-0' : 'scale-y-100'}`} />
+        </div>
+      )}
+      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Listening...' : 'Listen'}
+    </Button>
+  );
+}
+
 
 interface ResponseDisplayProps {
   original: string;
@@ -107,7 +132,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      <Card className="shadow-lg border-border/50">
+      <Card className="shadow-lg border-border/50 rounded-2xl">
         <CardHeader>
           <CardTitle className="font-headline text-3xl">Your Confused Response</CardTitle>
           <CardDescription>
@@ -121,16 +146,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
             <Button variant="outline" onClick={handleConfuseAgain}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Again
             </Button>
-            <Button variant="outline" onClick={handlePlay} disabled={isGeneratingAudio}>
-                {isGeneratingAudio ? (
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                ) : isPlaying ? (
-                    <Pause className="mr-2 h-4 w-4" />
-                ) : (
-                    <Play className="mr-2 h-4 w-4" />
-                )}
-                {isGeneratingAudio ? 'Generating' : isPlaying ? 'Pause' : 'Listen'}
-            </Button>
+            <PlayButton isPlaying={isPlaying} isGeneratingAudio={isGeneratingAudio} onClick={handlePlay} />
             <Button variant="outline" onClick={handleCopy}>
                 <Copy className="mr-2 h-4 w-4" /> Copy
             </Button>

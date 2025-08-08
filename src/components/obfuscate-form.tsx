@@ -81,18 +81,18 @@ export default function ObfuscateForm() {
   }
 
   return (
-    <Card className="w-full shadow-lg border-border/50">
+    <Card className="w-full shadow-lg border-border/50 rounded-2xl">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-            <CardTitle className="font-headline text-2xl">Start Confusing</CardTitle>
+            <CardTitle className="font-headline text-3xl">Start Confusing</CardTitle>
             <CardDescription>Enter a sentence and watch it become beautifully ambiguous.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <Tabs defaultValue="text" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="text"><Keyboard className="mr-2 h-4 w-4"/>Text Input</TabsTrigger>
-                <TabsTrigger value="voice" disabled><Mic className="mr-2 h-4 w-4"/>Voice Input</TabsTrigger>
+                <TabsTrigger value="text" className="rounded-full"><Keyboard className="mr-2 h-4 w-4"/>Text Input</TabsTrigger>
+                <TabsTrigger value="voice" disabled className="rounded-full"><Mic className="mr-2 h-4 w-4"/>Voice Input</TabsTrigger>
               </TabsList>
               <TabsContent value="text">
                  <FormField
@@ -120,10 +120,10 @@ export default function ObfuscateForm() {
                 name="language"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><Languages className="mr-2 h-4 w-4" />Language</FormLabel>
+                    <FormLabel className="flex items-center font-bold"><Languages className="mr-2 h-4 w-4 text-primary" />Language</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="rounded-full">
                           <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
                       </FormControl>
@@ -141,7 +141,7 @@ export default function ObfuscateForm() {
                 name="confusionLevel"
                 render={({ field }) => (
                   <FormItem>
-                     <FormLabel className="flex items-center"><SlidersHorizontal className="mr-2 h-4 w-4" />Confusion: {confusionLabel}</FormLabel>
+                     <FormLabel className="flex items-center font-bold"><SlidersHorizontal className="mr-2 h-4 w-4 text-primary" />Confusion: {confusionLabel}</FormLabel>
                     <FormControl>
                         <Slider
                             min={0}

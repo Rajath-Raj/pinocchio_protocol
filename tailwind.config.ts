@@ -10,9 +10,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['"Space Grotesk"', 'sans-serif'],
-        headline: ['"Literata"', 'serif'],
-        code: ['"Source Code Pro"', 'monospace'],
+        body: ['"Nunito"', 'sans-serif'],
+        headline: ['"Fredoka"', 'serif'],
+        code: ['"Comic Neue"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',

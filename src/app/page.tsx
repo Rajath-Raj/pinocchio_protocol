@@ -10,8 +10,8 @@ export default function Home() {
             <div className="inline-block bg-primary/20 p-4 rounded-full mb-4 border-2 border-primary/50">
                 <Bot className="w-12 h-12 text-primary" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-headline font-bold text-foreground">Obfuscate</h1>
-            <p className="text-lg text-muted-foreground mt-2 font-body">"The truth exists, but not here."</p>
+            <h1 className="text-5xl md:text-6xl font-headline font-bold text-foreground drop-shadow-sm">Obfuscate</h1>
+            <p className="text-xl text-muted-foreground mt-2 font-body">"The truth exists, but not here."</p>
         </div>
         <Suspense fallback={<div className="text-center text-lg">Loading form...</div>}>
             <ObfuscateFormLoader />
