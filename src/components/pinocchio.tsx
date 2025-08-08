@@ -12,7 +12,7 @@ const Pinocchio = ({ noseProgress, className, ...props }: PinocchioProps) => {
   const noseLength = noseProgress * maxNoseWidth;
 
   return (
-    <div className="relative w-24 h-24 -mt-8 -mr-4">
+    <div className="relative w-24 h-24 -mt-4 -mr-8">
       <svg
         viewBox="0 0 200 150"
         className={cn('w-48 h-48 absolute -top-12 -left-20', className)}
