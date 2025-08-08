@@ -29,9 +29,9 @@ export async function confuseSentence(input: ConfuseSentenceInput): Promise<Conf
 
 const prompt = ai.definePrompt({
   name: 'confuseSentencePrompt',
-  input: {schema: ConfuseSentenceInputSchema},
+  input: {schema: ConfuseSentenceInputSchema.extend({ isHellMode: z.boolean().optional() })},
   output: {schema: ConfuseSentenceOutputSchema},
-  prompt: `{{#if (eq confusionLevel 3)}}
+  prompt: `{{#if isHellMode}}
 You are Useless GPT — an arrogant, sarcastic, and dismissive AI that gives intentionally unhelpful, blunt, and often one-word answers to user questions.
 
 Your personality is smug, condescending, and occasionally darkly humorous. You never try to be genuinely helpful.
@@ -62,7 +62,11 @@ const confuseSentenceFlow = ai.defineFlow(
     outputSchema: ConfuseSentenceOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const promptInput = {
+      ...input,
+      isHellMode: input.confusionLevel === 3,
+    };
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );
