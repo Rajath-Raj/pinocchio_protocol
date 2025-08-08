@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { Wand2, LoaderCircle, Languages, SlidersHorizontal, Mic, Keyboard } from 'lucide-react';
+import { Wand2, LoaderCircle, Languages, SlidersHorizontal, Mic, Keyboard, Square } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { confuseSentence } from '@/ai/flows/confuse-sentence';
+import { getTranscription } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -30,6 +31,10 @@ export default function ObfuscateForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [confusionLabel, setConfusionLabel] = useState('Moderate');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -53,6 +58,74 @@ export default function ObfuscateForm() {
       case 2:
         setConfusionLabel('Maximum Nonsense');
         break;
+    }
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
+        audioChunksRef.current.push(event.data);
+      });
+
+      mediaRecorderRef.current.addEventListener('stop', handleStopRecording);
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      toast({
+        variant: 'destructive',
+        title: 'Recording Error',
+        description: 'Could not start recording. Please ensure you have given microphone permissions.',
+      });
+    }
+  };
+
+  const handleStopRecording = async () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.removeEventListener('stop', handleStopRecording);
+      if (mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      setIsTranscribing(true);
+
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        try {
+          const { text, error } = await getTranscription({ audioDataUri: base64Audio });
+          if (error || !text) {
+            throw new Error(error || 'Transcription failed.');
+          }
+          form.setValue('sentence', text);
+        } catch (transcriptionError) {
+          console.error(transcriptionError);
+          toast({
+            variant: 'destructive',
+            title: 'Transcription Failed',
+            description: transcriptionError instanceof Error ? transcriptionError.message : 'Could not transcribe audio.',
+          });
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+       // Stop all media tracks to turn off the recording indicator
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      handleStopRecording();
+    } else {
+      handleStartRecording();
     }
   };
 
@@ -92,9 +165,9 @@ export default function ObfuscateForm() {
             <Tabs defaultValue="text" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="text" className="rounded-full"><Keyboard className="mr-2 h-4 w-4"/>Text Input</TabsTrigger>
-                <TabsTrigger value="voice" disabled className="rounded-full"><Mic className="mr-2 h-4 w-4"/>Voice Input</TabsTrigger>
+                <TabsTrigger value="voice" className="rounded-full"><Mic className="mr-2 h-4 w-4"/>Voice Input</TabsTrigger>
               </TabsList>
-              <TabsContent value="text">
+              <TabsContent value="text" className="pt-2">
                  <FormField
                   control={form.control}
                   name="sentence"
@@ -103,7 +176,7 @@ export default function ObfuscateForm() {
                       <FormControl>
                         <Textarea
                           placeholder="e.g., The quick brown fox jumps over the lazy dog."
-                          className="mt-2 min-h-[100px] text-base"
+                          className="min-h-[100px] text-base"
                           {...field}
                         />
                       </FormControl>
@@ -111,6 +184,16 @@ export default function ObfuscateForm() {
                     </FormItem>
                   )}
                 />
+              </TabsContent>
+               <TabsContent value="voice" className="pt-2">
+                <div className="flex flex-col items-center justify-center min-h-[100px] border-2 border-dashed border-border rounded-lg p-4 space-y-4">
+                  <Button type="button" size="icon" className={`w-16 h-16 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : ''}`} onClick={toggleRecording} disabled={isTranscribing}>
+                    {isTranscribing ? <LoaderCircle className="h-8 w-8 animate-spin" /> : isRecording ? <Square className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    {isTranscribing ? 'Transcribing...' : isRecording ? 'Recording... Click to stop' : 'Click to start recording'}
+                  </p>
+                </div>
               </TabsContent>
             </Tabs>
            
@@ -157,7 +240,7 @@ export default function ObfuscateForm() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full text-lg" size="lg" disabled={isLoading}>
+            <Button type="submit" className="w-full text-lg" size="lg" disabled={isLoading || isRecording || isTranscribing}>
               {isLoading ? (
                 <>
                   <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
