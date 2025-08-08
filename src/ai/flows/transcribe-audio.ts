@@ -8,6 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import {TranscribeAudioInput, TranscribeAudioInputSchema, TranscribeAudioOutput, TranscribeAudioOutputSchema} from '@/ai/flows/transcribe-audio.types';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 export async function transcribeAudio(
@@ -23,8 +24,17 @@ const transcribeAudioFlow = ai.defineFlow(
     outputSchema: TranscribeAudioOutputSchema,
   },
   async ({audioDataUri}) => {
+    // Use a specific plugin instance if a separate key is provided.
+    const customAI = process.env.TRANSCRIPTION_API_KEY ? googleAI({ apiKey: process.env.TRANSCRIPTION_API_KEY }) : ai.registry.getPlugin('googleai');
+
+    if (!customAI) {
+      throw new Error("Google AI plugin is not configured.");
+    }
+
+    const model = customAI.model('gemini-2.0-flash');
+
     const {output} = await ai.generate({
-      model: 'googleai/gemini-2.0-flash',
+      model,
       prompt: [
         {media: {url: audioDataUri}},
         {text: 'Transcribe the audio accurately.'},
