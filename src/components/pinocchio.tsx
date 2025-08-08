@@ -16,7 +16,6 @@ const Pinocchio = ({ noseProgress, className, ...props }: PinocchioProps) => {
       <svg
         viewBox="0 0 200 150"
         className={cn('w-48 h-48 absolute -top-12 -left-20', className)}
-        style={{ '--nose-length': `${noseLength}px` } as React.CSSProperties}
         {...props}
       >
         <defs>
@@ -46,7 +45,7 @@ const Pinocchio = ({ noseProgress, className, ...props }: PinocchioProps) => {
                 stroke="#F97316" 
                 strokeWidth="1.5"
                 className="transition-all duration-300 ease-out"
-                width="var(--nose-length, 0)"
+                style={{ width: `${noseLength}px` }}
                 rx="2.5"
             />
         </g>
