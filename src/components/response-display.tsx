@@ -14,15 +14,20 @@ function AnimatedText({ text }: { text: string }) {
 
   useEffect(() => {
     setDisplayedText('');
-    const chars = text.split('');
-    chars.forEach((char, index) => {
-      setTimeout(() => {
-        setDisplayedText((prev) => prev + char);
-      }, index * 25);
-    });
+    let i = 0;
+    const intervalId = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedText(text.substring(0, i + 1));
+        i++;
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 25);
+
+    return () => clearInterval(intervalId);
   }, [text]);
 
-  return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">_</span></p>;
+  return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
 }
 
 function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: boolean; isGeneratingAudio: boolean; onClick: () => void; }) {
