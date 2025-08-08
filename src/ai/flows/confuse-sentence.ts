@@ -50,6 +50,9 @@ You are a character who cannot lie, but must avoid giving a clear or direct answ
 The output must be in {{language}}.
 
 Sentence: {{{sentence}}}`,
+  config: {
+    model: 'googleai/gemini-2.0-flash'
+  }
 });
 
 const confuseSentenceFlow = ai.defineFlow(
