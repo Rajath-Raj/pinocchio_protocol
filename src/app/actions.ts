@@ -1,7 +1,8 @@
 'use server';
 
 import { generateRobotVoice } from '@/ai/flows/generate-robot-voice';
-import { transcribeAudio, TranscribeAudioInput } from '@/ai/flows/transcribe-audio';
+import { transcribeAudio } from '@/ai/flows/transcribe-audio';
+import type { TranscribeAudioInput } from '@/ai/flows/transcribe-audio.types';
 
 export async function getRobotVoice(text: string): Promise<{ audioDataUri: string | null; error?: string }> {
   try {
