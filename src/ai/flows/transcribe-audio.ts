@@ -27,7 +27,7 @@ const transcribeAudioFlow = ai.defineFlow(
       model: 'googleai/gemini-2.0-flash',
       prompt: [
         {media: {url: audioDataUri}},
-        {text: 'Transcribe the audio.'},
+        {text: 'Transcribe the audio accurately.'},
       ],
     });
 
