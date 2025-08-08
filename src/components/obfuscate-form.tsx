@@ -94,7 +94,7 @@ export default function ObfuscateForm() {
       });
 
       mediaRecorderRef.current.addEventListener('stop', () => {
-        // This listener now only handles the blob creation and transcription
+        const mimeType = mediaRecorderRef.current?.mimeType;
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         if (audioBlob.size === 0) {
            toast({
@@ -136,7 +136,7 @@ export default function ObfuscateForm() {
       toast({
         variant: 'destructive',
         title: 'Recording Error',
-        description: 'Could not start recording. Please ensure you have given microphone permissions and are on a secure (HTTPS) connection.',
+        description: err instanceof Error ? err.message : 'Could not start recording. Please ensure you have given microphone permissions and are on a secure (HTTPS) connection.',
       });
     }
   };
@@ -144,7 +144,6 @@ export default function ObfuscateForm() {
   const handleStopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         mediaRecorderRef.current.stop();
-        // Stop all media tracks to turn off the recording indicator
         mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
         setIsTranscribing(true);

@@ -27,11 +27,11 @@ export async function getTranscription(input: TranscribeAudioInput): Promise<{ t
     if (!result || typeof result.text !== 'string') {
         throw new Error('Invalid transcription response from AI.');
     }
-    return { text: result.text };
+    return { text: result.text, error: undefined };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during transcription.';
     console.error('Error in getTranscription action:', errorMessage);
-    return { text: null, error: `Transcription failed: ${errorMessage}` };
+    return { text: null, error: errorMessage };
   }
 }
 
