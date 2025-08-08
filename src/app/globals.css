@@ -74,30 +74,30 @@
   }
 
   .thug-mode {
-    --background: 0 100% 4%; /* Deep black */
-    --foreground: 0 0% 98%; /* White text */
-    --card: 0 100% 8%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 100% 27%; /* Blood Red (#8B0000) */
+    --background: 0 0% 5%; /* Very dark grey */
+    --foreground: 0 0% 100%; /* Pure white */
+    --card: 0 0% 8%; /* Slightly lighter dark grey for cards */
+    --card-foreground: 0 0% 90%; /* Light grey for card text */
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 100% 50%; /* Vivid Red */
     --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 0 72% 41%; /* Crimson (#B22222) */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 10% 17%;
-    --muted-foreground: 0 20% 65%;
-    --accent: 0 100% 50%; /* Bright Red */
-    --accent-foreground: 0 0% 10%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 100% 15%; /* Dark red border */
-    --input: 0 100% 10%;
-    --ring: 0 100% 50%;
+    --secondary: 0 0% 15%; /* Darker grey for secondary elements */
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 84% 60%; /* Destructive Red as accent */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%; /* Vivid Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 100% 25%; /* Dark red border */
+    --input: 0 0% 10%;
+    --ring: 0 100% 50%; /* Vivid Red ring for focus */
   }
 
   .thug-mode .final-boss-title {
-    color: hsl(var(--accent));
-    text-shadow: 0 0 8px hsl(var(--accent)), 0 0 12px hsl(var(--primary));
+    color: hsl(var(--destructive));
+    text-shadow: 0 0 8px hsl(var(--destructive)), 0 0 12px hsl(var(--primary));
   }
 }
 
@@ -109,6 +109,6 @@
     @apply bg-background text-foreground transition-colors duration-500;
   }
   .thug-mode body {
-    background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(0, 100%, 8%));
+    background-image: linear-gradient(to bottom right, hsl(var(--background)), hsl(0, 0%, 2%));
   }
 }
