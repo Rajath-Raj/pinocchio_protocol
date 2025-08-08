@@ -1,5 +1,6 @@
 'use server';
 
+import { confuseSentence } from '@/ai/flows/confuse-sentence';
 import { generateRobotVoice } from '@/ai/flows/generate-robot-voice';
 import { transcribeAudio } from '@/ai/flows/transcribe-audio';
 import type { TranscribeAudioInput } from '@/ai/flows/transcribe-audio.types';
@@ -23,9 +24,15 @@ export async function getTranscription(input: TranscribeAudioInput): Promise<{ t
       return { text: null, error: 'No audio provided for transcription.' };
     }
     const result = await transcribeAudio(input);
+    if (!result || typeof result.text !== 'string') {
+        throw new Error('Invalid transcription response from AI.');
+    }
     return { text: result.text };
   } catch (error) {
-    console.error('Error transcribing audio:', error);
-    return { text: null, error: 'Failed to transcribe audio.' };
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during transcription.';
+    console.error('Error in getTranscription action:', errorMessage);
+    return { text: null, error: `Transcription failed: ${errorMessage}` };
   }
 }
+
+export { confuseSentence };

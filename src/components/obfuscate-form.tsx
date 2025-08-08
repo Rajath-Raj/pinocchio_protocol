@@ -13,8 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
-import { confuseSentence } from '@/ai/flows/confuse-sentence';
-import { getTranscription } from '@/app/actions';
+import { confuseSentence, getTranscription } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -102,7 +101,7 @@ export default function ObfuscateForm() {
         try {
           const { text, error } = await getTranscription({ audioDataUri: base64Audio });
           if (error || !text) {
-            throw new Error(error || 'Transcription failed.');
+            throw new Error(error || 'Transcription failed to return text.');
           }
           form.setValue('sentence', text);
         } catch (transcriptionError) {
@@ -110,7 +109,7 @@ export default function ObfuscateForm() {
           toast({
             variant: 'destructive',
             title: 'Transcription Failed',
-            description: transcriptionError instanceof Error ? transcriptionError.message : 'Could not transcribe audio.',
+            description: transcriptionError instanceof Error ? transcriptionError.message : 'An unknown error occurred.',
           });
         } finally {
           setIsTranscribing(false);
