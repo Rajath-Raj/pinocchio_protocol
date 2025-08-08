@@ -72,19 +72,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (audio) {
-        audio.onended = () => setIsPlaying(false);
-    }
-    return () => {
-        if (audio) {
-            audio.pause();
-            audio.onended = null;
-        }
-    };
-  }, [audio]);
-
+  
   const handlePlay = async () => {
     if (isPlaying && audio) {
         audio.pause();
@@ -117,6 +105,35 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
     currentAudio.play();
     setIsPlaying(true);
   };
+  
+  useEffect(() => {
+    // This effect handles the automatic playback
+    const animationDuration = confused.length * 25;
+    const timer = setTimeout(() => {
+      handlePlay();
+    }, animationDuration + 250); // Add a small buffer after animation
+
+    return () => {
+        clearTimeout(timer);
+        if (audio) {
+            audio.pause();
+        }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confused]); // Rerun when the confused text changes
+
+
+  useEffect(() => {
+    if (audio) {
+        audio.onended = () => setIsPlaying(false);
+    }
+    return () => {
+        if (audio) {
+            audio.pause();
+            audio.onended = null;
+        }
+    };
+  }, [audio]);
   
   const handleCopy = () => {
     navigator.clipboard.writeText(confused);
