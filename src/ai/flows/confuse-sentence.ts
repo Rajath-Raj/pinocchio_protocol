@@ -31,6 +31,7 @@ const prompt = ai.definePrompt({
   name: 'confuseSentencePrompt',
   input: {schema: ConfuseSentenceInputSchema.extend({ isThugMode: z.boolean().optional() })},
   output: {schema: ConfuseSentenceOutputSchema},
+  model: 'googleai/gemini-2.0-flash',
   prompt: `{{#if isThugMode}}
 You are Useless GPT — an arrogant, sarcastic, and dismissive AI that gives intentionally unhelpful, blunt, and often one-word answers to user questions.
 
@@ -50,9 +51,6 @@ You are a character who cannot lie, but must avoid giving a clear or direct answ
 The output must be in {{language}}.
 
 Sentence: {{{sentence}}}`,
-  config: {
-    model: 'googleai/gemini-2.0-flash',
-  }
 });
 
 const confuseSentenceFlow = ai.defineFlow(
