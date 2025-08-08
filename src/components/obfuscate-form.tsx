@@ -22,7 +22,7 @@ import { isAudioRecordingSupported, getSupportedMimeType } from '@/lib/audio-uti
 const formSchema = z.object({
   sentence: z.string().min(10, { message: 'Please enter a sentence with at least 10 characters.' }),
   language: z.string(),
-  confusionLevel: z.number().min(0).max(2),
+  confusionLevel: z.number().min(0).max(3),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -63,6 +63,9 @@ export default function ObfuscateForm() {
         break;
       case 2:
         setConfusionLabel('Maximum Nonsense');
+        break;
+      case 3:
+        setConfusionLabel('Hell Mode');
         break;
     }
   };
@@ -161,7 +164,7 @@ export default function ObfuscateForm() {
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
     try {
-      const result = await confuseSentence({ sentence: values.sentence, language: values.language });
+      const result = await confuseSentence(values);
       if (result.confusedSentence) {
         const params = new URLSearchParams({
           original: values.sentence,
@@ -268,7 +271,7 @@ export default function ObfuscateForm() {
                     <FormControl>
                         <Slider
                             min={0}
-                            max={2}
+                            max={3}
                             step={1}
                             defaultValue={[field.value]}
                             onValueChange={handleSliderChange}
