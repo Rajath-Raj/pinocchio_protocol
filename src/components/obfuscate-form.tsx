@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { Wand2, LoaderCircle, Languages, SlidersHorizontal, Mic, Keyboard, Square, MicOff } from 'lucide-react';
+import { Wand2, LoaderCircle, Languages, SlidersHorizontal, Mic, Keyboard, Square, MicOff, Skull } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { confuseSentence, getTranscription } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { isAudioRecordingSupported, getSupportedMimeType } from '@/lib/audio-utils';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   sentence: z.string().min(10, { message: 'Please enter a sentence with at least 10 characters.' }),
@@ -37,10 +38,15 @@ export default function ObfuscateForm() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [audioSupported, setAudioSupported] = useState<boolean>(false);
+  const [thugMode, setThugMode] = useState(false);
 
   useEffect(() => {
     setAudioSupported(isAudioRecordingSupported());
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('thug-mode', thugMode);
+  }, [thugMode]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -63,9 +69,6 @@ export default function ObfuscateForm() {
         break;
       case 2:
         setConfusionLabel('Maximum Nonsense');
-        break;
-      case 3:
-        setConfusionLabel('Hell Mode');
         break;
     }
   };
@@ -113,6 +116,7 @@ export default function ObfuscateForm() {
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
           const base64Audio = reader.result as string;
+          setIsTranscribing(true);
           try {
             const { text, error } = await getTranscription({ audioDataUri: base64Audio });
             if (error || !text) {
@@ -149,7 +153,6 @@ export default function ObfuscateForm() {
         mediaRecorderRef.current.stop();
         mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
-        setIsTranscribing(true);
     }
   };
 
@@ -163,8 +166,14 @@ export default function ObfuscateForm() {
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
+    
+    const submissionValues = {
+      ...values,
+      confusionLevel: thugMode ? 3 : values.confusionLevel,
+    };
+
     try {
-      const result = await confuseSentence(values);
+      const result = await confuseSentence(submissionValues);
       if (result.confusedSentence) {
         const params = new URLSearchParams({
           original: values.sentence,
@@ -181,19 +190,32 @@ export default function ObfuscateForm() {
         title: 'An error occurred',
         description: error instanceof Error ? error.message : 'Something went wrong.',
       });
+    } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <Card className="w-full shadow-lg border-border/50 rounded-2xl">
+    <Card className="w-full shadow-lg border-border/50 rounded-2xl transition-colors duration-500">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-            <CardTitle className="font-headline text-3xl">Start Confusing</CardTitle>
+            <CardTitle className="font-headline text-3xl transition-all duration-500">{thugMode ? 'Final Boss' : 'Start Confusing'}</CardTitle>
             <CardDescription>Enter a sentence and watch it become beautifully ambiguous.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex justify-end pr-2">
+                <Button 
+                    type="button" 
+                    variant={thugMode ? 'destructive' : 'outline'}
+                    size="sm"
+                    onClick={() => setThugMode(!thugMode)}
+                    className="group"
+                >
+                    <Skull className={cn("mr-2 h-4 w-4 transition-transform", thugMode && "animate-pulse group-hover:scale-125")} />
+                    Thug Bot
+                </Button>
+            </div>
             <Tabs defaultValue="text" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="text" className="rounded-full"><Keyboard className="mr-2 h-4 w-4"/>Text Input</TabsTrigger>
@@ -271,10 +293,11 @@ export default function ObfuscateForm() {
                     <FormControl>
                         <Slider
                             min={0}
-                            max={3}
+                            max={2}
                             step={1}
                             defaultValue={[field.value]}
                             onValueChange={handleSliderChange}
+                            disabled={thugMode}
                         />
                     </FormControl>
                   </FormItem>

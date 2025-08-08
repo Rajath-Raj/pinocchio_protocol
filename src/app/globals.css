@@ -72,6 +72,28 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  .thug-mode {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 14%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 80% 20%;
+    --secondary-foreground: 0 30% 90%;
+    --muted: 0 10% 17%;
+    --muted-foreground: 0 20% 65%;
+    --accent: 0 100% 60%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 50% 25%;
+    --input: 0 50% 20%;
+    --ring: 0 100% 50%;
+  }
 }
 
 @layer base {
@@ -79,6 +101,6 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-500;
   }
 }
