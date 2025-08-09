@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { Wand2, LoaderCircle, Languages, SlidersHorizontal, Mic, Keyboard, Square, MicOff, Skull } from 'lucide-react';
+import { Wand2, LoaderCircle, Languages, SlidersHorizontal, Mic, Keyboard, Square, MicOff, Skull, Bomb } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -318,8 +318,8 @@ export default function ObfuscateForm() {
                 </>
               ) : (
                 <>
-                  <Wand2 className="mr-2 h-5 w-5" />
-                  Confuse Me
+                  {thugMode ? <Bomb className="mr-2 h-5 w-5" /> : <Wand2 className="mr-2 h-5 w-5" />}
+                  {thugMode ? 'K.O' : 'Confuse Me'}
                 </>
               )}
             </Button>

@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, Copy, Save, LoaderCircle, Bot, Play, Pause } from 'lucide-react';
+import { RefreshCw, Copy, Save, Bot } from 'lucide-react';
 
-import { getRobotVoice } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-function AnimatedText({ text, onAnimationComplete }: { text: string, onAnimationComplete: () => void }) {
+function AnimatedText({ text }: { text: string }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -21,12 +20,11 @@ function AnimatedText({ text, onAnimationComplete }: { text: string, onAnimation
         i++;
       } else {
         clearInterval(intervalId);
-        onAnimationComplete();
       }
-    }, 25);
+    }, 50); // Slightly slower animation
 
     return () => clearInterval(intervalId);
-  }, [text, onAnimationComplete]);
+  }, [text]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
 }
@@ -39,75 +37,6 @@ interface ResponseDisplayProps {
 export default function ResponseDisplay({ original, confused }: ResponseDisplayProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
-  const [isTextAnimationComplete, setIsTextAnimationComplete] = useState(false);
-
-  const handlePlay = async () => {
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-      return;
-    }
-
-    // If audio is already generated, just play it.
-    if (audioDataUri && audioRef.current) {
-      audioRef.current.play();
-      setIsPlaying(true);
-      return;
-    }
-
-    // Otherwise, generate and play it.
-    setIsGeneratingAudio(true);
-    try {
-      const { audioDataUri: newAudioDataUri, error } = await getRobotVoice(confused);
-      if (error || !newAudioDataUri) {
-        throw new Error(error || 'Could not generate the robot voice.');
-      }
-      setAudioDataUri(newAudioDataUri);
-
-      // Stop any previously playing audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      
-      const newAudio = new Audio(newAudioDataUri);
-      audioRef.current = newAudio;
-      
-      newAudio.addEventListener('ended', () => setIsPlaying(false));
-      newAudio.play();
-      setIsPlaying(true);
-
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Audio Generation Failed',
-        description: err instanceof Error ? err.message : 'An unknown error occurred.',
-      });
-    } finally {
-      setIsGeneratingAudio(false);
-    }
-  };
-  
-  // Auto-play when text animation is complete
-  useEffect(() => {
-    if (isTextAnimationComplete) {
-      handlePlay();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTextAnimationComplete]);
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(confused);
@@ -142,21 +71,11 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
            </div>
         </CardHeader>
         <CardContent>
-          <AnimatedText text={confused} onAnimationComplete={() => setIsTextAnimationComplete(true)} />
+          <AnimatedText text={confused} />
         </CardContent>
-        <CardFooter className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <Button variant="outline" onClick={handleConfuseAgain}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Again
-            </Button>
-            <Button variant="outline" onClick={handlePlay} disabled={isGeneratingAudio}>
-              {isGeneratingAudio ? (
-                <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
-              ) : isPlaying ? (
-                <Pause className="mr-2 h-5 w-5" />
-              ) : (
-                <Play className="mr-2 h-5 w-5" />
-              )}
-              {isGeneratingAudio ? 'Generating' : isPlaying ? 'Pause' : 'Replay'}
             </Button>
             <Button variant="outline" onClick={handleCopy}>
                 <Copy className="mr-2 h-4 w-4" /> Copy
