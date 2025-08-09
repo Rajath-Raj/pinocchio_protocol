@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-function AnimatedText({ text }: { text: string }) {
+function AnimatedText({ text, onAnimationComplete }: { text: string, onAnimationComplete: () => void }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -21,11 +21,12 @@ function AnimatedText({ text }: { text: string }) {
         i++;
       } else {
         clearInterval(intervalId);
+        onAnimationComplete();
       }
     }, 25);
 
     return () => clearInterval(intervalId);
-  }, [text]);
+  }, [text, onAnimationComplete]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
 }
@@ -42,20 +43,23 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
+  const [isTextAnimationComplete, setIsTextAnimationComplete] = useState(false);
 
   const handlePlay = async () => {
-    if (isPlaying) {
-      audioRef.current?.pause();
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
       setIsPlaying(false);
       return;
     }
 
+    // If audio is already generated, just play it.
     if (audioDataUri && audioRef.current) {
       audioRef.current.play();
       setIsPlaying(true);
       return;
     }
 
+    // Otherwise, generate and play it.
     setIsGeneratingAudio(true);
     try {
       const { audioDataUri: newAudioDataUri, error } = await getRobotVoice(confused);
@@ -64,6 +68,11 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
       }
       setAudioDataUri(newAudioDataUri);
 
+      // Stop any previously playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
       const newAudio = new Audio(newAudioDataUri);
       audioRef.current = newAudio;
       
@@ -81,6 +90,14 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
       setIsGeneratingAudio(false);
     }
   };
+  
+  // Auto-play when text animation is complete
+  useEffect(() => {
+    if (isTextAnimationComplete) {
+      handlePlay();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTextAnimationComplete]);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -125,7 +142,7 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
            </div>
         </CardHeader>
         <CardContent>
-          <AnimatedText text={confused} />
+          <AnimatedText text={confused} onAnimationComplete={() => setIsTextAnimationComplete(true)} />
         </CardContent>
         <CardFooter className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Button variant="outline" onClick={handleConfuseAgain}>
