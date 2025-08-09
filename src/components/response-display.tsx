@@ -8,9 +8,8 @@ import { getRobotVoice } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import Pinocchio from './pinocchio';
 
-function AnimatedText({ text, onAnimationComplete }: { text: string; onAnimationComplete: () => void; }) {
+function AnimatedText({ text }: { text: string }) {
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
@@ -22,31 +21,14 @@ function AnimatedText({ text, onAnimationComplete }: { text: string; onAnimation
         i++;
       } else {
         clearInterval(intervalId);
-        onAnimationComplete();
       }
-    }, 35);
+    }, 25);
 
     return () => clearInterval(intervalId);
-  }, [text, onAnimationComplete]);
+  }, [text]);
 
   return <p className="text-xl md:text-2xl font-code p-6 bg-secondary rounded-md min-h-[120px] border border-border/50 shadow-inner">{displayedText}<span className="animate-ping">{displayedText.length === text.length ? '' : '_'}</span></p>;
 }
-
-function PlayButton({ isPlaying, isGeneratingAudio, onClick }: { isPlaying: boolean; isGeneratingAudio: boolean; onClick: () => void; }) {
-  return (
-    <Button variant="outline" onClick={onClick} disabled={isGeneratingAudio}>
-      {isGeneratingAudio ? (
-        <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
-      ) : isPlaying ? (
-        <Pause className="mr-2 h-5 w-5" />
-      ) : (
-        <Play className="mr-2 h-5 w-5" />
-      )}
-      {isGeneratingAudio ? 'Generating' : isPlaying ? 'Pause' : 'Replay'}
-    </Button>
-  );
-}
-
 
 interface ResponseDisplayProps {
   original: string;
@@ -60,96 +42,56 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
-  const [noseProgress, setNoseProgress] = useState(0);
-  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
-  
+
   const handlePlay = async () => {
-    if (audioRef.current && !audioRef.current.paused) {
-        audioRef.current.pause();
-        return;
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
     }
 
-    if (audioRef.current && audioRef.current.paused && audioDataUri) {
-        audioRef.current.play();
-        return;
+    if (audioDataUri && audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+      return;
     }
 
     setIsGeneratingAudio(true);
     try {
-        const { audioDataUri: newAudioDataUri, error } = await getRobotVoice(confused);
-        if (error || !newAudioDataUri) {
-          throw new Error(error || 'Could not generate the robot voice.');
-        }
-        setAudioDataUri(newAudioDataUri);
-
-        if (audioRef.current) {
-            audioRef.current.removeEventListener('timeupdate', onTimeUpdate);
-            audioRef.current.removeEventListener('ended', onEnded);
-            audioRef.current.removeEventListener('play', onPlay);
-            audioRef.current.removeEventListener('pause', onPause);
-        }
-
-        const newAudio = new Audio(newAudioDataUri);
-        audioRef.current = newAudio;
-        addAudioEventListeners(newAudio);
-        newAudio.play();
-    } catch (err) {
-        toast({
-            variant: 'destructive',
-            title: 'Audio Generation Failed',
-            description: err instanceof Error ? err.message : 'An unknown error occurred.',
-        });
-    } finally {
-        setIsGeneratingAudio(false);
-    }
-  };
-
-  const onTimeUpdate = () => {
-    if (audioRef.current) {
-        setNoseProgress(audioRef.current.currentTime / audioRef.current.duration);
-    }
-  };
-  const onPlay = () => setIsPlaying(true);
-  const onPause = () => {
-      setIsPlaying(false);
-      // Retract nose only when audio finishes completely
-      if (audioRef.current && audioRef.current.currentTime === audioRef.current.duration) {
-          setNoseProgress(0);
+      const { audioDataUri: newAudioDataUri, error } = await getRobotVoice(confused);
+      if (error || !newAudioDataUri) {
+        throw new Error(error || 'Could not generate the robot voice.');
       }
-  };
-  const onEnded = () => {
-      setIsPlaying(false);
-      setNoseProgress(0);
-  };
+      setAudioDataUri(newAudioDataUri);
 
-  const addAudioEventListeners = (audio: HTMLAudioElement) => {
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('ended', onEnded);
-    audio.addEventListener('play', onPlay);
-    audio.addEventListener('pause', onPause);
+      const newAudio = new Audio(newAudioDataUri);
+      audioRef.current = newAudio;
+      
+      newAudio.addEventListener('ended', () => setIsPlaying(false));
+      newAudio.play();
+      setIsPlaying(true);
+
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Audio Generation Failed',
+        description: err instanceof Error ? err.message : 'An unknown error occurred.',
+      });
+    } finally {
+      setIsGeneratingAudio(false);
+    }
   };
   
+  // Cleanup on unmount
   useEffect(() => {
-    if (isAnimationComplete) {
-      handlePlay();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAnimationComplete]); 
-
-  // Cleanup effect
-  useEffect(() => {
-    const audio = audioRef.current;
     return () => {
-        if (audio) {
-            audio.pause();
-            audio.removeEventListener('timeupdate', onTimeUpdate);
-            audio.removeEventListener('ended', onEnded);
-            audio.removeEventListener('play', onPlay);
-            audio.removeEventListener('pause', onPause);
-        }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, []);
-  
+
   const handleCopy = () => {
     navigator.clipboard.writeText(confused);
     toast({ title: 'Copied to clipboard!' });
@@ -170,24 +112,35 @@ export default function ResponseDisplay({ original, confused }: ResponseDisplayP
     <div className="w-full max-w-3xl mx-auto">
       <Card className="shadow-lg border-border/50 rounded-2xl">
         <CardHeader>
-          <div className="flex justify-between items-start">
+           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="font-headline text-3xl">Your Confused Response</CardTitle>
               <CardDescription>
                 Original: <span className="italic">"{original}"</span>
               </CardDescription>
             </div>
-            <Pinocchio noseProgress={noseProgress} />
-          </div>
+            <div className="bg-primary/20 p-3 rounded-full border-2 border-primary/50 -mt-2">
+                <Bot className="w-8 h-8 text-primary" />
+            </div>
+           </div>
         </CardHeader>
         <CardContent>
-          <AnimatedText text={confused} onAnimationComplete={() => setIsAnimationComplete(true)} />
+          <AnimatedText text={confused} />
         </CardContent>
         <CardFooter className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Button variant="outline" onClick={handleConfuseAgain}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Again
             </Button>
-            <PlayButton isPlaying={isPlaying} isGeneratingAudio={isGeneratingAudio} onClick={handlePlay} />
+            <Button variant="outline" onClick={handlePlay} disabled={isGeneratingAudio}>
+              {isGeneratingAudio ? (
+                <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="mr-2 h-5 w-5" />
+              ) : (
+                <Play className="mr-2 h-5 w-5" />
+              )}
+              {isGeneratingAudio ? 'Generating' : isPlaying ? 'Pause' : 'Replay'}
+            </Button>
             <Button variant="outline" onClick={handleCopy}>
                 <Copy className="mr-2 h-4 w-4" /> Copy
             </Button>
